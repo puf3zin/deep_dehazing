@@ -1,0 +1,20 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+# Ignore datasets, too heavy
+Datasets/Data
+Executions
+Evaluates/evaluate_input
+
+# Ignore weigths
+*.npz
+
+# pycache
+__pycache__
+*.pyc

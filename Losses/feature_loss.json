@@ -1,0 +1,4 @@
+{
+    "weights_file": "Losses/vgg16_weights.npz",
+    "loss_layer": "relu21"
+}
