@@ -11,6 +11,7 @@
 Datasets/Data
 Executions
 Evaluates/evaluate_input
+results/
 
 # Ignore weigths
 *.npz

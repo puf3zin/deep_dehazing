@@ -1,3 +1,4 @@
+import PIL
 from PIL import Image
 import os
 import numpy as np
@@ -14,6 +15,19 @@ def cut_into_four(image):
 
 def cut_into_one(image):
     return image[:224, :224]
+
+def resize_image(img_arr):
+    img = Image.fromarray(img_arr)
+    base_size = 224
+    if img.size[0] < img.size[1]: #if width < height
+        wpercent = (base_size / float(img.size[0]))
+        hsize = int((float(img.size[1]) * float(wpercent)))
+        img = img.resize((base_size, hsize), PIL.Image.ANTIALIAS)
+    else:
+        hpercent = (base_size / float(img.size[1]))
+        wsize = int((float(img.size[0]) * float(hpercent)))
+        img = img.resize((wsize, base_size), PIL.Image.ANTIALIAS)
+    return np.array(img)
 
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -49,25 +63,25 @@ FILENAME_TRAIN_PAIRS = zip(images_train, depths_train)
 FILENAME_VALIDATION_PAIRS = zip(images_validation, depths_validation)
 for img_path, depth_path in FILENAME_TRAIN_PAIRS:
     #print (img_path, depth_path)
-    img = np.array(Image.open(img_path))
+    im = Image.open(img_path)
+    img = resize_image(np.array(im))
     f = h5py.File(depth_path,'r')
     data = f.get('depth')
     depth = np.transpose(np.array(data))
-    depth = depth.astype(np.uint8)
-    pair = zip(cut_into_four(img), cut_into_four(depth))
-    for img2, depth2 in pair:
-        if (img2.shape == (224,224,3) and depth2.shape == (224,224)):
-            #print ((img2.shape), (depth2.shape))
-            image_raw = img2.tostring()
-            depth_raw = depth2.tostring()
+    depth = resize_image(depth.astype(np.uint8))
+    cut_img, cut_depth = cut_into_one(img), cut_into_one(depth)
+    if (cut_img.shape == (224,224,3) and cut_depth.shape == (224,224)):
+        #print ((cut_img.shape), (cut_depth.shape))
+        image_raw = cut_img.tostring()
+        depth_raw = cut_depth.tostring()
 
-            example = tf.train.Example(features=tf.train.Features(feature={
-                'image_raw': _bytes_feature(image_raw),
-                'depth_raw': _bytes_feature(depth_raw)}))
-            WRITER_TRAIN.write(example.SerializeToString())
-        else:
-            print (img_path)
-            print (img2.shape, depth2.shape)
+        example = tf.train.Example(features=tf.train.Features(feature={
+            'image_raw': _bytes_feature(image_raw),
+            'depth_raw': _bytes_feature(depth_raw)}))
+        WRITER_TRAIN.write(example.SerializeToString())
+    else:
+        print (img_path)
+        print (cut_img.shape, cut_depth.shape)
 
 WRITER_TRAIN.close()
 
@@ -75,22 +89,22 @@ print ("--------validation-------------")
 
 for img_path, depth_path in FILENAME_VALIDATION_PAIRS:
     #print (img_path, depth_path)
-    img = np.array(Image.open(img_path))
+    im = Image.open(img_path)
+    img = resize_image(np.array(im))
     f = h5py.File(depth_path,'r')
     data = f.get('depth')
     depth = np.transpose(np.array(data))
-    depth = depth.astype(np.uint8)
-    pair = zip(cut_into_four(img), cut_into_four(depth))
-    for img2, depth2 in pair:
-        if (img2.shape == (224,224,3) and depth2.shape == (224,224)):
-            image_raw = img2.tostring()
-            depth_raw = depth2.tostring()
-            example = tf.train.Example(features=tf.train.Features(feature={
-                'image_raw': _bytes_feature(image_raw),
-                'depth_raw': _bytes_feature(depth_raw)}))
-            WRITER_VALIDATION.write(example.SerializeToString())
-        else:
-            print (img_path)
-            print (img2.shape, depth2.shape)
+    depth = resize_image(depth.astype(np.uint8))
+    cut_img, cut_depth = cut_into_one(img), cut_into_one(depth)
+    if (cut_img.shape == (224,224,3) and cut_depth.shape == (224,224)):
+        image_raw = cut_img.tostring()
+        depth_raw = cut_depth.tostring()
+        example = tf.train.Example(features=tf.train.Features(feature={
+            'image_raw': _bytes_feature(image_raw),
+            'depth_raw': _bytes_feature(depth_raw)}))
+        WRITER_VALIDATION.write(example.SerializeToString())
+    else:
+        print (img_path)
+        print (cut_img.shape, cut_depth.shape)
 
 WRITER_VALIDATION.close()
