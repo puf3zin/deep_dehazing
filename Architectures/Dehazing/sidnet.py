@@ -50,7 +50,7 @@ class SIDNet(architecture.Architecture):
     def print_tensor(self, tensor, text):
         print(text, tensor)
 
-    def process_single_channel(self, channel, nc, normalizer_params): # 224²x1
+    def process_single_channel(self, channel, nc, normalizer_params, num_channels=1): # 224²x1
         conv1 = self.two_convs(channel, nc) # 220²x64
         encode1 = self.downsample(conv1) # 110²x64
         self.print_tensor(encode1, "encode1")
@@ -81,7 +81,7 @@ class SIDNet(architecture.Architecture):
         conv7 = self.two_convs(decode3, nc) # 140²x64
         self.print_tensor(conv7, "conv7")
 
-        conv8 = tf.contrib.layers.conv2d(inputs=conv7, num_outputs=1,
+        conv8 = tf.contrib.layers.conv2d(inputs=conv7, num_outputs=num_channels,
                                          kernel_size=[1, 1], stride=[1, 1],
                                          padding='SAME', normalizer_fn=None,
                                          activation_fn=tf.nn.relu)
@@ -111,7 +111,9 @@ class SIDNet(architecture.Architecture):
                                      processed_b], axis=3)
 
         self.print_tensor(processed_total, "processed_total")
-        brelu = tf.minimum(processed_total,1)
+        final = self.process_single_channel(processed_total, nc,
+                                            normalizer_params, 3)
+        brelu = tf.minimum(final, 1)
         self.print_tensor(brelu, "brelu")
 
         tf.summary.image("architecture_output", brelu)
