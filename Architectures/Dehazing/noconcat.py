@@ -17,7 +17,7 @@ class NoConcat(architecture.Architecture):
         " Coarse-scale Network"
         normalizer_params = {'is_training':training, 'center':True,
                              'updates_collections':None, 'scale':True}
-        nc = 128
+        nc = 64
         conv1 = tf.contrib.layers.conv2d(inputs=sample, num_outputs=nc, kernel_size=[3, 3],
                                          stride=[1, 1], padding='SAME',
                                          normalizer_fn=None,
