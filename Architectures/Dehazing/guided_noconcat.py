@@ -1,22 +1,8 @@
 import architecture
 import tensorflow as tf
-#import Architectures.Layers.guided_filter as gf
-from guided_filter_tf.guided_filter import fast_guided_filter
 from guided_filter_tf.guided_filter import guided_filter
 
-
-def get_low_resolution(hr_x, ssr=4):
-    three = tf.constant([3.], dtype=tf.float32)
-    hr_shape = tf.shape(hr_x)
-    first = tf.cast(hr_shape[1] / ssr, tf.int32)
-    second = tf.cast(hr_shape[2] / ssr, tf.int32)
-    lr_shape = [first, second]
-    lr_x = tf.image.resize_images(hr_x, lr_shape)
-    return lr_x
-
-
-
-class GuidedNet(architecture.Architecture):
+class GuidedNoConcat(architecture.Architecture):
     def __init__(self):
         parameters_list = ['input_size', 'summary_writing_period',
                            "validation_period", "model_saving_period"]
@@ -26,121 +12,104 @@ class GuidedNet(architecture.Architecture):
 
     def prediction(self, sample, training=False):
         " Coarse-scale Network"
-        subsampling_ratio = 4
-        lr_sample = get_low_resolution(sample, subsampling_ratio)
         normalizer_params = {'is_training':training, 'center':True,
                              'updates_collections':None, 'scale':True}
-        nc = 16
+        nc = 64
         conv1 = tf.contrib.layers.conv2d(inputs=sample, num_outputs=nc, kernel_size=[3, 3],
                                          stride=[1, 1], padding='SAME',
                                          normalizer_fn=None,
                                          activation_fn=tf.nn.relu)
 
-        encode1 = tf.contrib.layers.conv2d(inputs=conv1, num_outputs=2*nc, kernel_size=[3, 3],
+        encod1 = tf.contrib.layers.conv2d(inputs=conv1, num_outputs=2*nc, kernel_size=[3, 3],
                                           stride=[2, 2], padding='SAME',
                                           normalizer_fn=tf.contrib.layers.batch_norm,
                                           normalizer_params=normalizer_params,
                                           activation_fn=tf.nn.relu)
-        print(encode1)
+        print(encod1)
 
-        encode2 = tf.contrib.layers.conv2d(inputs=encode1, num_outputs=4*nc, kernel_size=[3, 3],
+        encod2 = tf.contrib.layers.conv2d(inputs=encod1, num_outputs=4*nc, kernel_size=[3, 3],
                                           stride=[2, 2], padding='SAME',
                                           normalizer_fn=tf.contrib.layers.batch_norm,
                                           normalizer_params=normalizer_params,
                                           activation_fn=tf.nn.relu)
-        print(encode2)
-        encode3 = tf.contrib.layers.conv2d(inputs=encode2, num_outputs=8*nc, kernel_size=[3, 3],
+        print(encod2)                                 
+        encod3 = tf.contrib.layers.conv2d(inputs=encod2, num_outputs=8*nc, kernel_size=[3, 3],
                                           stride=[2, 2], padding='SAME',
                                           normalizer_fn=tf.contrib.layers.batch_norm,
                                           normalizer_params=normalizer_params,
                                           activation_fn=tf.nn.relu)
-        print(encode3)
-        encode4 = tf.contrib.layers.conv2d(inputs=encode3, num_outputs=8*nc, kernel_size=[3, 3],
+        print(encod3)
+        encod4 = tf.contrib.layers.conv2d(inputs=encod3, num_outputs=8*nc, kernel_size=[3, 3],
                                           stride=[2, 2], padding='SAME',
                                           normalizer_fn=tf.contrib.layers.batch_norm,
                                           normalizer_params=normalizer_params,
                                           activation_fn=tf.nn.relu)
-        print(encode4)
+        print(encod4)
         
-        decode1 = tf.contrib.layers.conv2d_transpose(encode4, num_outputs=8*nc,
+        decode1 = tf.contrib.layers.conv2d_transpose(encod4, num_outputs=8*nc,
                                                     kernel_size=[4,4],stride=[2, 2],
                                                     padding='SAME',
                                                     normalizer_fn=tf.contrib.layers.batch_norm,
                                                     normalizer_params=normalizer_params,
                                                     activation_fn=tf.nn.relu)
 
-        skip1 = tf.concat([encode3, decode1], 3)
+        decode1 = tf.concat([encod3, decode1], 3)
 
-        print(skip1)
+        print(decode1)
 
-        decode2 = tf.contrib.layers.conv2d_transpose(skip1, num_outputs=4*nc,
+        decode2 = tf.contrib.layers.conv2d_transpose(decode1, num_outputs=4*nc,
                                                     kernel_size=[4,4],stride=[2, 2],
                                                     padding='SAME',
                                                     normalizer_fn=tf.contrib.layers.batch_norm,
                                                     normalizer_params=normalizer_params,
                                                     activation_fn=tf.nn.relu)
-        skip2 = tf.concat([encode2, decode2], 3)
+        decode2 = tf.concat([encod2, decode2], 3)
 
-        print(skip2) 
+        print(decode2)
 
-        decode3 = tf.contrib.layers.conv2d_transpose(skip2, num_outputs=2*nc,
+        decode3 = tf.contrib.layers.conv2d_transpose(decode2, num_outputs=2*nc,
                                                     kernel_size=[4,4],stride=[2, 2],
                                                     padding='SAME',
                                                     normalizer_fn=tf.contrib.layers.batch_norm,
                                                     normalizer_params=normalizer_params,
                                                     activation_fn=tf.nn.relu)
-        skip3 = tf.concat([encode1, decode3], 3)
+        decode3 = tf.concat([encod1, decode3], 3)
 
-        print(skip3)
+        print(decode3)
 
-        decode4 = tf.contrib.layers.conv2d_transpose(skip3, num_outputs=nc,
+        decode4 = tf.contrib.layers.conv2d_transpose(decode3, num_outputs=nc,
                                                     kernel_size=[4,4],stride=[2, 2],
                                                     padding='SAME',
                                                     normalizer_fn=tf.contrib.layers.batch_norm,
                                                     normalizer_params=normalizer_params,
                                                     activation_fn=tf.nn.relu)
-                                                    
-        skip4 = tf.concat([conv1, decode4], 3)
+        decode4 = tf.concat([conv1, decode4], 3)
+        
+        print(decode4)
 
-        conv4_1 = tf.contrib.layers.conv2d(inputs=skip4, num_outputs=3, kernel_size=[3, 3],
+        conv4 = tf.contrib.layers.conv2d(inputs=decode4, num_outputs=3, kernel_size=[3, 3],
                                          stride=[1, 1], padding='SAME',
                                          normalizer_fn=tf.contrib.layers.batch_norm,
                                          normalizer_params=normalizer_params,
                                          activation_fn=tf.nn.relu)
 
-        tf.summary.image("pre_guided", conv4_1)
 
-        # lr_conv4_1 = get_low_resolution(conv4_1, subsampling_ratio)
-        
-        # guided4_1 = fast_guided_filter(lr_sample, lr_conv4_1, sample,
-        #                                r=5, eps=10**-4, nhwc=True)
-        guided4_1 = guided_filter(sample, conv4_1, r=5, eps=10**-4, nhwc=True)
+        tf.summary.image("pre_guided", conv4)
 
-        tf.summary.image("post_guided", guided4_1)
+        guided = guided_filter(sample, conv4, 8, 0, nhwc=True)
 
-        conv4_2 = tf.contrib.layers.conv2d(inputs=skip4, num_outputs=3, kernel_size=[3, 3],
-                                         stride=[1, 1], padding='SAME',
-                                         normalizer_fn=tf.contrib.layers.batch_norm,
-                                         normalizer_params=normalizer_params,
-                                         activation_fn=tf.nn.relu)
+        tf.summary.image("post_guided", guided)
 
-        # lr_conv4_2 = get_low_resolution(conv4_2, subsampling_ratio)
-        # guided4_2 = fast_guided_filter(lr_sample, lr_conv4_2, sample,
-        #                                r=5, eps=10**-4, nhwc=True)
-        
-        guided4_2 = guided_filter(sample, conv4_2, r=5, eps=10**-4, nhwc=True)
+        # conv5 = tf.contrib.layers.conv2d(inputs=conv4, num_outputs=3, kernel_size=[1, 1],
+        #                                  stride=[1, 1], padding='SAME',
+        #                                  normalizer_fn=tf.contrib.layers.batch_norm,
+        #                                  normalizer_params=normalizer_params,
+        #                                  activation_fn=tf.nn.relu)
 
-        guided4 = tf.concat([guided4_2*sample,guided4_1,sample],3)
-
-        conv5 = tf.contrib.layers.conv2d(inputs=guided4, num_outputs=3, kernel_size=[1, 1],
-                                         stride=[1, 1], padding='SAME',
-                                         normalizer_fn=None,
-                                         activation_fn=tf.nn.relu)
-
-        brelu = tf.minimum(conv5,1)
-
+        brelu = tf.minimum(guided,1)
         tf.summary.image("architecture_output", brelu)
         return brelu
+
 
 
     def get_validation_period(self):

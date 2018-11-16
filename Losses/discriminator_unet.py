@@ -28,7 +28,7 @@ class DiscriminatorLoss(loss.Loss):
         self.disc_gt = 0.0
         self.disc_out = 0.0
 
-    def evaluate(self, architecture_output, target_output):
+    def evaluate(self, architecture_input, architecture_output, target_output):
         """This method evaluates the loss for the given image and it's ground-truth.
 
         The method models a discriminator neural network on a separate variable scope
@@ -42,6 +42,8 @@ class DiscriminatorLoss(loss.Loss):
         Returns:
             The value of the discriminator loss returned by the network.
         """
+
+        print ("DISCRIMINATOR UNET")
 
         def discriminator_layer(image, name, n, depth, stride, training=True):
             """This function creates one layer of the discriminator network.

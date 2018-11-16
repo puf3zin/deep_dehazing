@@ -52,7 +52,9 @@ class DiscriminatorLoss(loss.Loss):
         Returns:
             The value of the discriminator loss returned by the network.
         """
-        
+    
+        print ("DISCRIMINATOR")
+
         def lrelu(image, alpha):
             return tf.maximum(alpha * image, image)
 

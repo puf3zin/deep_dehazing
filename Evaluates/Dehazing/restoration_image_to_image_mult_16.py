@@ -28,6 +28,8 @@ class RestorationImageToImageMult16(evaluate.Evaluate):
         
         for name in im_names:
             with tf.Graph().as_default():
+                print ("started loading image")
+                beginzao = time.time()
                 image = Image.open(name).convert('RGB')
                 image = np.array(image, dtype=np.float32) / 255.0
                 architecture_instance.input_size=image.shape[0:2]
@@ -35,7 +37,6 @@ class RestorationImageToImageMult16(evaluate.Evaluate):
                 image_shape = image.shape
                 architecture_input = tf.placeholder("float", shape=image.shape,
                                                 name="input_image")
-
                 height = image_shape[1]
                 width = image_shape[2]
 
@@ -45,10 +46,16 @@ class RestorationImageToImageMult16(evaluate.Evaluate):
                     width += 16 - (width % 16)
 
                 architecture_input2 = tf.image.resize_images(architecture_input, [height, width])
+                print ("loaded image", time.time() - beginzao)
+                print ("started defining prediction")
+                begin = time.time()
                 with tf.variable_scope("model/architecture", reuse=None):
                     architecture_output = architecture_instance.prediction(architecture_input2,
                                                                         training=False)
                 architecture_output = tf.image.resize_images(architecture_output, image_shape[1:3])
+                print ("defined prediction:", time.time() - begin)
+                print ("started inference")
+                begin = time.time()
                 # The op for initializing the variables.
                 init_op = tf.group(tf.global_variables_initializer(),
                                 tf.local_variables_initializer())
@@ -72,6 +79,8 @@ class RestorationImageToImageMult16(evaluate.Evaluate):
                 output_np.shape = output_np.shape[1:]
                 output_np = (output_np * 255).astype(np.uint8)
                 output = Image.fromarray(output_np)
+                print ("finished inference", time.time() - begin)
                 name = name[len(evaluate_input_dir):]
                 output.save(evaluate_output_path + name)
                 sess.close()
+                print ("finished everything", time.time() - beginzao)

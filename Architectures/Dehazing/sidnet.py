@@ -109,11 +109,25 @@ class SIDNet(architecture.Architecture):
         processed_total = tf.concat([processed_r,
                                      processed_g,
                                      processed_b], axis=3)
+                                
+        conv1 = tf.contrib.layers.conv2d(inputs=processed_total, num_outputs=nc,
+                                         kernel_size=[3, 3], stride=[1, 1],
+                                         padding='SAME', normalizer_fn=None,
+                                         activation_fn=tf.nn.relu)
 
-        self.print_tensor(processed_total, "processed_total")
-        final = self.process_single_channel(processed_total, nc,
-                                            normalizer_params, 3)
-        brelu = tf.minimum(final, 1)
+        conv2 = tf.contrib.layers.conv2d(inputs=conv1, num_outputs=nc/2,
+                                         kernel_size=[3, 3], stride=[1, 1],
+                                         padding='SAME', normalizer_fn=None,
+                                         activation_fn=tf.nn.relu)
+
+        conv3 = tf.contrib.layers.conv2d(inputs=conv2, num_outputs=3,
+                                         kernel_size=[1, 1], stride=[1, 1],
+                                         padding='SAME', normalizer_fn=None)
+
+        # self.print_tensor(processed_total, "processed_total")
+        # final = self.process_single_channel(processed_total, nc,
+        #                                     normalizer_params, 3)
+        brelu = tf.minimum(conv3, 1)
         self.print_tensor(brelu, "brelu")
 
         tf.summary.image("architecture_output", brelu)

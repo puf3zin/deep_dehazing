@@ -299,7 +299,7 @@ def run_training(opt_values):
     time_str = time.strftime("%Y-%m-%d_%H:%M")
     
     if opt_values["execution_mode"] == "train":
-        execution_dir = "Executions/" + dataset_name + "/" + arch_name + "/" + loss_name +\
+        execution_dir = "Executions/final_tests/" + dataset_name + "/" + arch_name + "/" + loss_name +\
                     "/" + time_str
         os.makedirs(execution_dir)
     elif opt_values["execution_mode"] == "restore":
@@ -323,6 +323,8 @@ def run_training(opt_values):
     # Tell TensorFlow that the model will be built into the default Graph.
     graph = tf.Graph()
     with graph.as_default():
+        # Create a session for running operations in the Graph.
+        sess = tf.Session()
         # if it load step to continue on the same point on dataset
         execution_mode = opt_values["execution_mode"]
         if execution_mode == "train":
@@ -330,12 +332,12 @@ def run_training(opt_values):
         else:
             initial_step = tf.train.load_variable(model_dir, "global_step")
         # Input and target output pairs.
-        architecture_input, target_output = dataset_imp.next_batch_train(initial_step)
+        architecture_input, target_output = dataset_imp.next_batch_train(initial_step, sess)
 
         with tf.variable_scope("model"):
             with tf.variable_scope("architecture"):
                 architecture_output = architecture_imp.prediction(architecture_input, training=True)
-            loss_op = loss_imp.evaluate(architecture_output, target_output)
+            loss_op = loss_imp.evaluate(architecture_input, architecture_output, target_output)
         train_op, global_step = training(loss_op, optimizer_imp)
 
         if loss_imp.trainable():
@@ -345,11 +347,12 @@ def run_training(opt_values):
         # Test
         architecture_input_test, target_output_test, init = dataset_imp.next_batch_test()
 
+
         with tf.variable_scope("model", reuse=True):
             with tf.variable_scope("architecture", reuse=True):
                 architecture_output_test = architecture_imp.prediction(architecture_input_test,
                                                                    training=False) # TODO: false?
-            loss_op_test = loss_imp.evaluate(architecture_output_test, target_output_test)
+            loss_op_test = loss_imp.evaluate(architecture_input_test, architecture_output_test, target_output_test)
         tf_test_loss = tf.placeholder(tf.float32, shape=(), name="tf_test_loss")
         test_loss = tf.summary.scalar('test_loss', tf_test_loss)
 
@@ -362,8 +365,6 @@ def run_training(opt_values):
                            tf.local_variables_initializer())
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver()
-        # Create a session for running operations in the Graph.
-        sess = tf.Session()
         # Initialize the variables (the trained variables and the
         # epoch counter).
         sess.run(init_op)

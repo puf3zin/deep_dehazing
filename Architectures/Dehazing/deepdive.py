@@ -100,6 +100,7 @@ class DeepDive(architecture.Architecture):
                                          normalizer_params=normalizer_params,
                                          activation_fn=tf.nn.relu)
         
+        tf.summary.image("pre_guided", conv4_1)
 
         guided4_1_list = []
         for i in range(3):
@@ -115,6 +116,8 @@ class DeepDive(architecture.Architecture):
 
         guided4_1 = tf.concat(guided4_1_list, 3)
 
+        tf.summary.image("post_guided", guided4_1)
+        
         conv4_2 = tf.contrib.layers.conv2d(inputs=decode4, num_outputs=3, kernel_size=[3, 3],
                                          stride=[1, 1], padding='SAME',
                                          normalizer_fn=tf.contrib.layers.batch_norm,
@@ -143,7 +146,6 @@ class DeepDive(architecture.Architecture):
                                          activation_fn=tf.nn.relu)
 
         brelu = tf.minimum(conv5,1)
-
         tf.summary.image("architecture_output", brelu)
         return brelu
 

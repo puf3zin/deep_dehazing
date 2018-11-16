@@ -11,7 +11,10 @@
 Datasets/Data
 Executions
 Evaluates/evaluate_input
+Evaluates/ours
+Evaluates/port
 results/
+misc_utils/tests
 
 # Ignore weigths
 *.npz

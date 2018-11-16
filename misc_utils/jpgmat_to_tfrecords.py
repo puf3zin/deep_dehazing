@@ -5,29 +5,21 @@ import numpy as np
 import tensorflow as tf
 import h5py
 
-def cut_into_four(image):
-    l = []
-    l.append(image[:224, :224])
-    l.append(image[-224:, :224])
-    l.append(image[:224, -224:])
-    l.append(image[-224:, -224:])
-    return l
-
-def cut_into_one(image):
-    return image[:224, :224]
-
-def resize_image(img_arr):
+def resize_image(img_arr, depth=False):
     img = Image.fromarray(img_arr)
     base_size = 224
     if img.size[0] < img.size[1]: #if width < height
         wpercent = (base_size / float(img.size[0]))
         hsize = int((float(img.size[1]) * float(wpercent)))
-        img = img.resize((base_size, hsize), PIL.Image.ANTIALIAS)
+        img = img.resize((base_size, hsize), Image.ANTIALIAS)
     else:
         hpercent = (base_size / float(img.size[1]))
         wsize = int((float(img.size[0]) * float(hpercent)))
-        img = img.resize((wsize, base_size), PIL.Image.ANTIALIAS)
-    return np.array(img)
+        img = img.resize((wsize, base_size), Image.ANTIALIAS)
+    if not depth:
+        return np.array(img)[:base_size, :base_size, :3]
+    else:
+        return np.array(img)[:base_size, :base_size]
 
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -65,15 +57,18 @@ for img_path, depth_path in FILENAME_TRAIN_PAIRS:
     #print (img_path, depth_path)
     im = Image.open(img_path)
     img = resize_image(np.array(im))
-    f = h5py.File(depth_path,'r')
+    try:
+        f = h5py.File(depth_path,'r')
+    except OSError:
+        print ("OSError:", depth_path)
     data = f.get('depth')
     depth = np.transpose(np.array(data))
-    depth = resize_image(depth.astype(np.uint8))
-    cut_img, cut_depth = cut_into_one(img), cut_into_one(depth)
-    if (cut_img.shape == (224,224,3) and cut_depth.shape == (224,224)):
-        #print ((cut_img.shape), (cut_depth.shape))
-        image_raw = cut_img.tostring()
-        depth_raw = cut_depth.tostring()
+    resized_image = resize_image(img)[:224, :224, :3]
+    resized_depth = resize_image(depth, True)[:224, :224]
+    if (resized_image.shape == (224,224,3) and resized_depth.shape == (224,224)):
+        #print ((resized_image.shape), (resized_depth.shape))
+        image_raw = resized_image.tostring()
+        depth_raw = resized_depth.tostring()
 
         example = tf.train.Example(features=tf.train.Features(feature={
             'image_raw': _bytes_feature(image_raw),
@@ -81,7 +76,7 @@ for img_path, depth_path in FILENAME_TRAIN_PAIRS:
         WRITER_TRAIN.write(example.SerializeToString())
     else:
         print (img_path)
-        print (cut_img.shape, cut_depth.shape)
+        print (resized_image.shape, resized_depth.shape)
 
 WRITER_TRAIN.close()
 
@@ -91,20 +86,23 @@ for img_path, depth_path in FILENAME_VALIDATION_PAIRS:
     #print (img_path, depth_path)
     im = Image.open(img_path)
     img = resize_image(np.array(im))
-    f = h5py.File(depth_path,'r')
+    try:
+        f = h5py.File(depth_path,'r')
+    except OSError:
+        print ("OSError:", depth_path)
     data = f.get('depth')
     depth = np.transpose(np.array(data))
-    depth = resize_image(depth.astype(np.uint8))
-    cut_img, cut_depth = cut_into_one(img), cut_into_one(depth)
-    if (cut_img.shape == (224,224,3) and cut_depth.shape == (224,224)):
-        image_raw = cut_img.tostring()
-        depth_raw = cut_depth.tostring()
+    resized_image = resize_image(img)[:224, :224, :3]
+    resized_depth = resize_image(depth, True)[:224, :224]
+    if (resized_image.shape == (224,224,3) and resized_depth.shape == (224,224)):
+        image_raw = resized_image.tostring()
+        depth_raw = resized_depth.tostring()
         example = tf.train.Example(features=tf.train.Features(feature={
             'image_raw': _bytes_feature(image_raw),
             'depth_raw': _bytes_feature(depth_raw)}))
         WRITER_VALIDATION.write(example.SerializeToString())
     else:
         print (img_path)
-        print (cut_img.shape, cut_depth.shape)
+        print (resized_image.shape, resized_depth.shape)
 
 WRITER_VALIDATION.close()

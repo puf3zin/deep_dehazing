@@ -1,0 +1,6 @@
+{
+    "ssim_weight": 1.0,
+    "l1_weight": 0.0,
+    "discriminator_weight": 0.5,
+    "feature_weight": 1.0
+}

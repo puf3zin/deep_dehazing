@@ -4,7 +4,7 @@ import tensorflow as tf
 def leaky_relu(x, alpha=0.2):
       return tf.nn.relu(x) - alpha * tf.nn.relu(-x)
 
-class Unet(architecture.Architecture):
+class UNet(architecture.Architecture):
     
 
     def __init__(self):

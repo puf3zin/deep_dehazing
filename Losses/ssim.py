@@ -4,7 +4,8 @@ class SSIM(loss.Loss):
     def __init__(self):
         parameters_list = []
         self.config_dict = self.open_config(parameters_list)
-    def evaluate(self, architecture_output, target_output):
+    def evaluate(self, architecture_input, architecture_output, target_output):
+        print ("SSIM")
 
         C1 = 6.5025
         C2 = 58.5225
@@ -30,7 +31,7 @@ class SSIM(loss.Loss):
                     [0.0000, 0.0001, 0.0003, 0.0008, 0.0016, 0.0020, 0.0016, 0.0008, 0.0003, 0.0001, 0.0000],
                     [0.0000, 0.0000, 0.0000, 0.0001, 0.0002, 0.0003, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000]]]
         #pylint: enable=line-too-long
-        weights = tf.concat(0, [weights] * 3)
+        weights = tf.concat(axis=0, values=[weights]*3)
         weights = tf.reshape(weights, [11, 11, 3, 1])
 
         # create a typical 11x11 gausian kernel with 1.5 sigma
